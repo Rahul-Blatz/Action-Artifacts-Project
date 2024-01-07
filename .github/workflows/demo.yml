@@ -9,6 +9,11 @@ jobs:
     steps:
       - name: Get code
         uses: actions/checkout@v3
+      - name: Cache Dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: deps-node-modules-${{ hashFiles('**/packages-lock.json')}} #This hash file helps in identifying if there's any changes in dependencies, so that new cache need to be created.
       - name: Install dependencies
         run: npm ci
       - name: Lint code
@@ -19,15 +24,20 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     outputs:
-      script-file: ${{ steps.publish.outputs.file}}
+      script-file: ${{ steps.publish.outputs.file}} # This is needed so that the data is available to other jobs.
     steps:
       - name: Get code
         uses: actions/checkout@v3
+      - name: Cache Dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: deps-node-modules-${{ hashFiles('**/packages-lock.json')}} #This hash file helps in identifying if there's any changes in dependencies, so that new cache need to be created.
       - name: Install dependencies
         run: npm ci
       - name: Build website
         run: npm run build
-      - name: Publish JS Filename
+      - name: Publish JS Filename # echoing the data to Github Output context.
         id: publish
         run: find dist/assets/*.js -type f -execdir echo 'file={}' >> $GITHUB_OUTPUT ';'
       - name: Upload Build artifacts
@@ -46,7 +56,7 @@ jobs:
         uses: actions/download-artifact@v3
       - name: Display Results
         run: ls
-      - name: Output Filename
+      - name: Output Filename # Step needed to retreive the data from previous job
         run: echo "${{ needs.build.outputs.script-file}}"
       - name: Deploy
         run: echo "Deploying..."
